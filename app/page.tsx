@@ -1,13 +1,24 @@
-import Hero from '@/components/Hero';
-import Features from '@/components/Features';
-import Pricing from '@/components/pricing'; // ✅ import the Pricing component
+import Hero from "@/components/Hero";
+import Features from "@/components/Features";
+import Pricing from "@/components/Pricing";
+import Contact from "@/components/Contact";
 
 export default function Home() {
   return (
     <>
       <Hero />
-      <Features />
-      <Pricing /> {/* ✅ this adds the pricing section to your homepage */}
+
+      <section id="features">
+        <Features />
+      </section>
+
+      <section id="pricing">
+        <Pricing />
+      </section>
+
+      <section id="contact">
+        <Contact />
+      </section>
     </>
   );
 }

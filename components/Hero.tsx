@@ -2,7 +2,7 @@
 
 export default function Hero() {
   return (
-    <section className="flex flex-col items-center justify-center h-[90vh] text-center px-6 bg-black text-white">
+    <section className="flex flex-col items-center justify-center h-[90vh] text-center px-6 bg-black text-white" id="home">
       <h1 className="text-4xl md:text-6xl font-bold mb-6">
         Perfect Your Resume with <span className="text-pink-500">Rezzy</span>
       </h1>

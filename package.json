@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@clerk/nextjs": "^6.28.1",
     "chart.js": "^4.4.9",
     "framer-motion": "^12.10.5",
     "next": "15.3.1",

@@ -1,7 +1,7 @@
 'use client';
 export default function Features() {
   return (
-    <section className="bg-white dark:bg-black py-20 px-4">
+    <section className="bg-white dark:bg-black py-20 px-4" id="features">
       <div className="max-w-5xl mx-auto text-center">
         <h2 className="text-3xl font-bold mb-10">Why Rezzy?</h2>
         <div className="grid gap-8 md:grid-cols-3">

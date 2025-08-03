@@ -439,24 +439,36 @@ export default function Dashboard() {
 
       if (response.ok) {
         const data = await response.json();
+        console.log('🔧 Dashboard upgrade response:', data);
+        
         if (data.success && data.session_id) {
+          console.log('🔧 Stripe session created:', data.session_id);
+          console.log('🔧 Stripe publishable key:', process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
+          
           // Redirect to Stripe Checkout using loadStripe
           const { loadStripe } = await import('@stripe/stripe-js');
           const stripe = await loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
+          
           if (stripe) {
+            console.log('🔧 Stripe loaded successfully');
             const { error } = await stripe.redirectToCheckout({
               sessionId: data.session_id,
             });
             if (error) {
+              console.error('🔧 Stripe redirect error:', error);
               setError('Error redirecting to payment: ' + error.message);
             }
           } else {
+            console.error('🔧 Failed to load Stripe');
             setError('Failed to load Stripe');
           }
         } else {
+          console.error('🔧 Invalid response from server:', data);
           setError('Failed to create checkout session');
         }
       } else {
+        const errorData = await response.json();
+        console.error('🔧 API error:', errorData);
         setError('Failed to create checkout session');
       }
     } catch (_error) {

@@ -18,16 +18,14 @@ export default function Pricing() {
     
     try {
       // Create checkout session
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/create-checkout-session`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/upgrade-subscription`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
         },
         body: new URLSearchParams({
           user_id: user.id,
-          plan: plan,
-          success_url: `${window.location.origin}/dashboard?success=true`,
-          cancel_url: `${window.location.origin}/pricing?canceled=true`,
+          new_plan: plan,
         }),
       });
 
@@ -38,8 +36,19 @@ export default function Pricing() {
       const data = await response.json();
       
       if (data.success && data.session_id) {
-        // Redirect to Stripe Checkout
-        window.location.href = `https://checkout.stripe.com/pay/${data.session_id}`;
+        // Redirect to Stripe Checkout using loadStripe
+        const { loadStripe } = await import('@stripe/stripe-js');
+        const stripe = await loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
+        if (stripe) {
+          const { error } = await stripe.redirectToCheckout({
+            sessionId: data.session_id,
+          });
+          if (error) {
+            throw new Error('Error redirecting to payment: ' + error.message);
+          }
+        } else {
+          throw new Error('Failed to load Stripe');
+        }
       } else {
         throw new Error('Invalid response from server');
       }
@@ -114,11 +123,11 @@ export default function Pricing() {
               <li>✅ Detailed Feedback</li>
             </ul>
             <button 
-              onClick={() => handleGetStarted('starter')}
+              onClick={() => handleUpgrade('starter')}
               disabled={loading === 'starter'}
               className="w-full py-2 bg-green-600 text-white rounded hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading === 'starter' ? 'Loading...' : 'Get Started'}
+              {loading === 'starter' ? 'Loading...' : 'Upgrade Now'}
             </button>
           </div>
 

@@ -50,11 +50,14 @@ export default function Pricing() {
           });
           if (error) {
             console.error('🔧 Stripe redirect error:', error);
-            throw new Error('Error redirecting to payment: ' + error.message);
+            // Fallback to direct URL redirect
+            console.log('🔧 Using fallback redirect method');
+            window.location.href = `https://checkout.stripe.com/pay/${data.session_id}`;
           }
         } else {
-          console.error('🔧 Failed to load Stripe');
-          throw new Error('Failed to load Stripe');
+          console.error('🔧 Failed to load Stripe, using fallback');
+          // Fallback to direct URL redirect
+          window.location.href = `https://checkout.stripe.com/pay/${data.session_id}`;
         }
       } else {
         console.error('🔧 Invalid response from server:', data);

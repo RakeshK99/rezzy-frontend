@@ -86,7 +86,7 @@ export default function Dashboard() {
   const [interviewQuestions, setInterviewQuestions] = useState<string[]>([]);
 
   // UI state
-  const [activeTab, setActiveTab] = useState<'upload' | 'analyze' | 'results' | 'history'>('upload');
+  const [activeTab, setActiveTab] = useState<'upload' | 'analyze' | 'results' | 'history' | 'subscription'>('upload');
   const [showPremiumModal, setShowPremiumModal] = useState(false);
   const [savedAnalyses, setSavedAnalyses] = useState<SavedAnalysis[]>([]);
   const [selectedAnalysis, setSelectedAnalysis] = useState<SavedAnalysis | null>(null);
@@ -687,6 +687,16 @@ export default function Dashboard() {
                 </span>
               )}
             </button>
+            <button
+              onClick={() => setActiveTab('subscription')}
+              className={`px-6 py-3 rounded-xl transition-all ${
+                activeTab === 'subscription' 
+                  ? 'bg-white text-black' 
+                  : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              Subscription
+            </button>
           </div>
         </div>
 
@@ -1173,6 +1183,179 @@ export default function Dashboard() {
                       </div>
                     </div>
                   ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Subscription Tab */}
+        {activeTab === 'subscription' && (
+          <div className="max-w-4xl mx-auto">
+            <div className="bg-gray-900/50 backdrop-blur-sm rounded-3xl p-8 border border-gray-800">
+              <h2 className="text-2xl font-semibold mb-6">Subscription Management</h2>
+              
+              {/* Current Plan Status */}
+              <div className="bg-gradient-to-r from-blue-500/10 to-purple-500/10 rounded-2xl p-6 mb-8 border border-blue-500/20">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-xl font-semibold mb-2">Current Plan</h3>
+                    <p className="text-3xl font-bold text-white mb-2">
+                      {plan === 'free' ? 'Free Plan' : 
+                       plan === 'starter' ? 'Starter Plan' : 
+                       plan === 'premium' ? 'Premium Plan' : 'Free Plan'}
+                    </p>
+                    <p className="text-gray-400">
+                      {plan === 'free' ? 'Free' : 
+                       plan === 'starter' ? '$9/month' : 
+                       plan === 'premium' ? '$19/month' : 'Free'}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-sm text-gray-400 mb-2">Usage This Month</div>
+                    <div className="text-lg font-semibold">
+                      {usage?.scans_used || 0} scans used
+                    </div>
+                    {plan === 'free' && (
+                      <div className="text-sm text-yellow-400">
+                        {5 - (usage?.scans_used || 0)} scans remaining
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Plan Comparison */}
+              <div className="grid md:grid-cols-3 gap-6 mb-8">
+                <div className="bg-gray-800/50 rounded-2xl p-6 border border-gray-700">
+                  <h4 className="text-lg font-semibold mb-4">Free Plan</h4>
+                  <p className="text-3xl font-bold mb-4">$0</p>
+                  <ul className="space-y-3 text-sm text-gray-300 mb-6">
+                    <li className="flex items-center">
+                      <svg className="w-4 h-4 text-green-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                      5 resume scans per month
+                    </li>
+                    <li className="flex items-center">
+                      <svg className="w-4 h-4 text-green-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                      Basic AI analysis
+                    </li>
+                    <li className="flex items-center">
+                      <svg className="w-4 h-4 text-green-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                      Standard support
+                    </li>
+                  </ul>
+                </div>
+
+                <div className="bg-blue-500/10 rounded-2xl p-6 border border-blue-500/30 relative">
+                  <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                    <span className="bg-blue-500 text-white px-3 py-1 rounded-full text-sm font-medium">
+                      Popular
+                    </span>
+                  </div>
+                  <h4 className="text-lg font-semibold mb-4">Starter Plan</h4>
+                  <p className="text-3xl font-bold mb-4">$9<span className="text-lg text-gray-400">/month</span></p>
+                  <ul className="space-y-3 text-sm text-gray-300 mb-6">
+                    <li className="flex items-center">
+                      <svg className="w-4 h-4 text-green-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                      Unlimited resume scans
+                    </li>
+                    <li className="flex items-center">
+                      <svg className="w-4 h-4 text-green-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                      Advanced AI analysis
+                    </li>
+                    <li className="flex items-center">
+                      <svg className="w-4 h-4 text-green-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                      Priority support
+                    </li>
+                  </ul>
+                  {plan !== 'starter' && plan !== 'premium' && (
+                    <Button
+                      onClick={() => handleUpgrade('starter')}
+                      className="w-full bg-blue-600 hover:bg-blue-700"
+                    >
+                      Upgrade to Starter
+                    </Button>
+                  )}
+                </div>
+
+                <div className="bg-purple-500/10 rounded-2xl p-6 border border-purple-500/30">
+                  <h4 className="text-lg font-semibold mb-4">Premium Plan</h4>
+                  <p className="text-3xl font-bold mb-4">$19<span className="text-lg text-gray-400">/month</span></p>
+                  <ul className="space-y-3 text-sm text-gray-300 mb-6">
+                    <li className="flex items-center">
+                      <svg className="w-4 h-4 text-green-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                      Everything in Starter
+                    </li>
+                    <li className="flex items-center">
+                      <svg className="w-4 h-4 text-green-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                      Cover letter generation
+                    </li>
+                    <li className="flex items-center">
+                      <svg className="w-4 h-4 text-green-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                      Interview questions
+                    </li>
+                    <li className="flex items-center">
+                      <svg className="w-4 h-4 text-green-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                      Premium support
+                    </li>
+                  </ul>
+                  {plan !== 'premium' && (
+                    <Button
+                      onClick={() => handleUpgrade('premium')}
+                      className="w-full bg-purple-600 hover:bg-purple-700"
+                    >
+                      Upgrade to Premium
+                    </Button>
+                  )}
+                </div>
+              </div>
+
+              {/* Subscription Actions */}
+              {(plan === 'starter' || plan === 'premium') && (
+                <div className="border-t border-gray-700 pt-6">
+                  <h3 className="text-lg font-semibold mb-4">Subscription Actions</h3>
+                  <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h4 className="font-medium text-red-400 mb-1">Cancel Subscription</h4>
+                        <p className="text-sm text-gray-400">
+                          Cancel your subscription to stop future charges. You'll keep access until the end of your current billing period.
+                        </p>
+                      </div>
+                      <Button
+                        onClick={() => {
+                          if (confirm('Are you sure you want to cancel your subscription? You will lose access to premium features at the end of your current billing period.')) {
+                            // Handle cancellation
+                            alert('Cancellation feature will be implemented soon.');
+                          }
+                        }}
+                        variant="outline"
+                        className="border-red-500 text-red-400 hover:bg-red-500 hover:text-white"
+                      >
+                        Cancel Subscription
+                      </Button>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>

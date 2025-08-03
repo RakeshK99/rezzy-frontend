@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useUser, useClerk } from '@clerk/nextjs';
 import Link from 'next/link';
 import { Button } from '@/components/Button';
@@ -69,7 +69,7 @@ interface SavedAnalysis {
 export default function Dashboard() {
   const { user, isLoaded } = useUser();
   const { signOut } = useClerk();
-  const [plan, setPlan] = useState<'free' | 'premium' | null>(null);
+  const [plan, setPlan] = useState<'free' | 'starter' | 'premium' | null>(null);
   const [usage, setUsage] = useState<UsageData | null>(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -154,7 +154,7 @@ export default function Dashboard() {
       }
     } catch (_error) {
       console.error('Error creating/getting user:', _error);
-      if (_error.name === 'AbortError') {
+      if (_error instanceof Error && _error.name === 'AbortError') {
         setError('Request timed out. Please check your connection and try again.');
       } else {
         setError('Failed to connect to backend service. Please ensure the backend is running.');
@@ -605,7 +605,7 @@ export default function Dashboard() {
                   <div className="mt-4 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-xl">
                     <div className="text-center">
                       <p className="text-yellow-300 text-sm mb-3">
-                        You've used all 5 free scans this month. Upgrade to Starter for unlimited scans!
+                        You&apos;ve used all 5 free scans this month. Upgrade to Starter for unlimited scans!
                       </p>
                       <Button 
                         onClick={() => handleUpgrade('starter')}
@@ -730,7 +730,7 @@ export default function Dashboard() {
                         <span className="text-yellow-400 font-medium">Free Plan Limit Reached</span>
                       </div>
                       <p className="text-yellow-300 text-sm mb-3">
-                        You've used all 5 free scans this month. Upgrade to Starter for unlimited scans!
+                        You&apos;ve used all 5 free scans this month. Upgrade to Starter for unlimited scans!
                       </p>
                       <Button 
                         onClick={() => handleUpgrade('starter')}
@@ -744,7 +744,7 @@ export default function Dashboard() {
                   )}
                   <Button 
                     onClick={uploadResume}
-                    disabled={loading || (plan === 'free' && usage && usage.scans_used >= 5)}
+                    disabled={loading || (plan === 'free' && usage && usage.scans_used >= 5) || false}
                     className="w-full"
                     size="lg"
                   >

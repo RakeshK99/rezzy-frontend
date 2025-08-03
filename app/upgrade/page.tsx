@@ -12,13 +12,13 @@ const pricingTiers = [
     period: '/month',
     description: 'Perfect for getting started',
     features: [
-      '3 AI resume scans per month',
+      '5 AI resume scans per month',
       'Basic keyword analysis',
       'ATS compatibility check',
       'Resume structure analysis'
     ],
     limitations: [
-      'Limited to 3 scans per month',
+      'Limited to 5 scans per month',
       'No cover letter generation',
       'No interview questions',
       'Basic feedback only'
@@ -48,7 +48,7 @@ const pricingTiers = [
     plan: 'starter'
   },
   {
-    name: 'Pro',
+    name: 'Premium',
     price: '$19',
     period: '/month',
     description: 'Complete job search toolkit',
@@ -67,23 +67,7 @@ const pricingTiers = [
     popular: true,
     plan: 'premium'
   },
-  {
-    name: 'Elite',
-    price: '$29',
-    period: '/month',
-    description: 'For serious professionals',
-    features: [
-      'Everything in Pro',
-      'Portfolio hosting',
-      'Weekly AI resume reviews',
-      'Job matching engine',
-      'Advanced analytics dashboard',
-      'Dedicated support'
-    ],
-    limitations: [],
-    popular: false,
-    plan: 'elite'
-  }
+
 ];
 
 export default function Upgrade() {
@@ -96,7 +80,7 @@ export default function Upgrade() {
 
     setLoading(true);
     try {
-      const response = await fetch('http://127.0.0.1:8000/api/create-checkout-session', {
+              const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/create-checkout-session`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
@@ -194,7 +178,7 @@ export default function Upgrade() {
               </div>
 
               <div className="space-y-4 mb-8">
-                <h4 className="font-semibold text-green-400">What's included:</h4>
+                <h4 className="font-semibold text-green-400">What&apos;s included:</h4>
                 <ul className="space-y-3">
                   {tier.features.map((feature, index) => (
                     <li key={index} className="flex items-start space-x-2">
@@ -246,7 +230,7 @@ export default function Upgrade() {
           </Button>
           
           {selectedPlan === 'free' && (
-            <p className="text-gray-400 mt-4">You're already on the free plan</p>
+            <p className="text-gray-400 mt-4">You&apos;re already on the free plan</p>
           )}
         </div>
 
@@ -256,7 +240,7 @@ export default function Upgrade() {
           <div className="grid gap-8 md:grid-cols-2 max-w-4xl mx-auto">
             <div className="bg-gray-900/50 backdrop-blur-sm rounded-2xl p-6 border border-gray-800">
               <h3 className="text-lg font-semibold mb-3">Can I cancel anytime?</h3>
-              <p className="text-gray-400">Yes, you can cancel your subscription at any time. You'll continue to have access until the end of your billing period.</p>
+              <p className="text-gray-400">Yes, you can cancel your subscription at any time. You&apos;ll continue to have access until the end of your billing period.</p>
             </div>
             
             <div className="bg-gray-900/50 backdrop-blur-sm rounded-2xl p-6 border border-gray-800">

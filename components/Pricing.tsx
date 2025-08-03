@@ -1,6 +1,70 @@
 'use client';
 
+import { useState } from 'react';
+import { useUser } from '@clerk/nextjs';
+
 export default function Pricing() {
+  const [loading, setLoading] = useState<string | null>(null);
+  const { user, isSignedIn } = useUser();
+
+  const handleUpgrade = async (plan: string) => {
+    if (!isSignedIn) {
+      // Redirect to sign in if not authenticated
+      window.location.href = '/sign-in';
+      return;
+    }
+
+    setLoading(plan);
+    
+    try {
+      // Create checkout session
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/create-checkout-session`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+          user_id: user.id,
+          plan: plan,
+          success_url: `${window.location.origin}/dashboard?success=true`,
+          cancel_url: `${window.location.origin}/pricing?canceled=true`,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create checkout session');
+      }
+
+      const data = await response.json();
+      
+      if (data.success && data.session_id) {
+        // Redirect to Stripe Checkout
+        window.location.href = `https://checkout.stripe.com/pay/${data.session_id}`;
+      } else {
+        throw new Error('Invalid response from server');
+      }
+    } catch (error) {
+      console.error('Error creating checkout session:', error);
+      alert('Failed to start checkout. Please try again.');
+    } finally {
+      setLoading(null);
+    }
+  };
+
+  const handleGetStarted = (plan: string) => {
+    if (plan === 'free') {
+      // For free plan, redirect to dashboard
+      if (isSignedIn) {
+        window.location.href = '/dashboard';
+      } else {
+        window.location.href = '/sign-up';
+      }
+    } else {
+      // For paid plans, trigger upgrade flow
+      handleUpgrade(plan);
+    }
+  };
+
   return (
     <section
       id="pricing"
@@ -12,39 +76,73 @@ export default function Pricing() {
           Simple, transparent pricing. No hidden fees.
         </p>
 
-        <div className="grid gap-8 md:grid-cols-2">
+        <div className="grid gap-8 md:grid-cols-3">
           {/* Free Plan */}
-          <div className="border border-gray-300 dark:border-gray-700 rounded-lg p-8 shadow-sm">
+          <div className="border border-blue-500 rounded-lg p-8 shadow-lg bg-blue-50 dark:bg-blue-900/10">
             <h3 className="text-2xl font-semibold mb-2">Free</h3>
-            <p className="text-gray-600 dark:text-gray-400 mb-4">
+            <p className="text-gray-700 dark:text-gray-300 mb-4">
               Perfect for getting started
             </p>
-            <p className="text-4xl font-bold mb-6">$0</p>
+            <p className="text-4xl font-bold text-blue-600 mb-6">$0</p>
             <ul className="text-left mb-6 space-y-2">
-              <li>✅ 1 Resume Scan</li>
+              <li>✅ 5 Resume Scans</li>
               <li>✅ Basic ATS Check</li>
-              <li>✅ One AI Suggestion</li>
+              <li>✅ AI Suggestions</li>
+              <li>✅ Keyword Analysis</li>
             </ul>
-            <button className="w-full py-2 bg-black text-white rounded hover:bg-neutral-800 transition">
-              Get Started
+            <button 
+              onClick={() => handleGetStarted('free')}
+              disabled={loading === 'free'}
+              className="w-full py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading === 'free' ? 'Loading...' : 'Get Started'}
             </button>
           </div>
 
-          {/* Pro Plan */}
-          <div className="border border-pink-500 rounded-lg p-8 shadow-lg bg-pink-50 dark:bg-pink-900/10">
-            <h3 className="text-2xl font-semibold mb-2">Pro</h3>
+          {/* Starter Plan */}
+          <div className="border border-green-500 rounded-lg p-8 shadow-lg bg-green-50 dark:bg-green-900/10">
+            <h3 className="text-2xl font-semibold mb-2">Starter</h3>
             <p className="text-gray-700 dark:text-gray-300 mb-4">
-              For serious job hunters
+              For active job seekers
             </p>
-            <p className="text-4xl font-bold text-pink-600 mb-6">$12<span className="text-lg font-medium">/mo</span></p>
+            <p className="text-4xl font-bold text-green-600 mb-6">$9<span className="text-lg font-medium">/mo</span></p>
             <ul className="text-left mb-6 space-y-2">
-              <li>🚀 Unlimited Resume Scans</li>
-              <li>🚀 Full ATS Optimization</li>
-              <li>🚀 AI Edits + Job Matching</li>
-              <li>🚀 Premium Support</li>
+              <li>✅ Unlimited Resume Scans</li>
+              <li>✅ Advanced Keyword Analysis</li>
+              <li>✅ ATS Optimization Tips</li>
+              <li>✅ Resume Scoring</li>
+              <li>✅ Detailed Feedback</li>
             </ul>
-            <button className="w-full py-2 bg-pink-600 text-white rounded hover:bg-pink-700 transition">
-              Upgrade Now
+            <button 
+              onClick={() => handleGetStarted('starter')}
+              disabled={loading === 'starter'}
+              className="w-full py-2 bg-green-600 text-white rounded hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading === 'starter' ? 'Loading...' : 'Get Started'}
+            </button>
+          </div>
+
+          {/* Premium Plan */}
+          <div className="border border-pink-500 rounded-lg p-8 shadow-lg bg-pink-50 dark:bg-pink-900/10">
+            <h3 className="text-2xl font-semibold mb-2">Premium</h3>
+            <p className="text-gray-700 dark:text-gray-300 mb-4">
+              Complete job search toolkit
+            </p>
+            <p className="text-4xl font-bold text-pink-600 mb-6">$19<span className="text-lg font-medium">/mo</span></p>
+            <ul className="text-left mb-6 space-y-2">
+              <li>🚀 Everything in Starter</li>
+              <li>🚀 AI Cover Letter Generation</li>
+              <li>🚀 Interview Question Generator</li>
+              <li>🚀 Advanced Analytics</li>
+              <li>🚀 Priority Support</li>
+              <li>🚀 Resume History</li>
+            </ul>
+            <button 
+              onClick={() => handleUpgrade('premium')}
+              disabled={loading === 'premium'}
+              className="w-full py-2 bg-pink-600 text-white rounded hover:bg-pink-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading === 'premium' ? 'Loading...' : 'Upgrade Now'}
             </button>
           </div>
         </div>

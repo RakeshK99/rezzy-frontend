@@ -5,7 +5,7 @@ import { Button } from '@/components/Button';
 import { useUser, useClerk } from '@clerk/nextjs';
 
 export default function Hero() {
-  const { isSignedIn, user } = useUser();
+  const { isSignedIn } = useUser();
   const { openSignIn } = useClerk();
 
   const scrollToFeatures = () => {

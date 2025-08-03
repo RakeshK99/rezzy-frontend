@@ -93,7 +93,7 @@ export default function Dashboard() {
   const [showNotification, setShowNotification] = useState(false);
   const [notificationMessage, setNotificationMessage] = useState('');
 
-  const createUserIfNeeded = async () => {
+  const createUserIfNeeded = useCallback(async () => {
     try {
       console.log('Creating/getting user for:', user?.id);
       
@@ -160,25 +160,9 @@ export default function Dashboard() {
         setError('Failed to connect to backend service. Please ensure the backend is running.');
       }
     }
-  };
+  }, [user]);
 
-  useEffect(() => {
-    if (isLoaded && user?.id && !userCreated) {
-      createUserIfNeeded();
-    }
-  }, [isLoaded, user, userCreated]);
-
-  useEffect(() => {
-    if (userCreated && user?.id) {
-      loadSavedAnalyses();
-    }
-  }, [userCreated, user?.id]);
-
-  const handleSignOut = () => {
-    signOut();
-  };
-
-  const loadSavedAnalyses = async () => {
+  const loadSavedAnalyses = useCallback(async () => {
     if (!user?.id) return;
     
     try {
@@ -190,6 +174,22 @@ export default function Dashboard() {
     } catch (_error) {
       console.error('Error loading saved analyses:', _error);
     }
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (isLoaded && user?.id && !userCreated) {
+      createUserIfNeeded();
+    }
+  }, [isLoaded, user, userCreated, createUserIfNeeded]);
+
+  useEffect(() => {
+    if (userCreated && user?.id) {
+      loadSavedAnalyses();
+    }
+  }, [userCreated, user?.id, loadSavedAnalyses]);
+
+  const handleSignOut = () => {
+    signOut();
   };
 
   const showNotificationMessage = (message: string) => {
@@ -1339,7 +1339,7 @@ export default function Dashboard() {
                       <div>
                         <h4 className="font-medium text-red-400 mb-1">Cancel Subscription</h4>
                         <p className="text-sm text-gray-400">
-                          Cancel your subscription to stop future charges. You'll keep access until the end of your current billing period.
+                          Cancel your subscription to stop future charges. You&apos;ll keep access until the end of your current billing period.
                         </p>
                       </div>
                       <Button

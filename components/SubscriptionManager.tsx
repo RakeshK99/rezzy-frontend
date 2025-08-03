@@ -28,13 +28,7 @@ export default function SubscriptionManager() {
   const [canceling, setCanceling] = useState(false);
   const [message, setMessage] = useState('');
 
-  useEffect(() => {
-    if (user) {
-      fetchSubscription();
-    }
-  }, [user]);
-
-  const fetchSubscription = async () => {
+  const fetchSubscription = useCallback(async () => {
     if (!user) return;
     
     try {
@@ -46,7 +40,13 @@ export default function SubscriptionManager() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
+
+  useEffect(() => {
+    if (user) {
+      fetchSubscription();
+    }
+  }, [user, fetchSubscription]);
 
   const handleUpgrade = async (plan: 'starter' | 'premium') => {
     if (!user) return;

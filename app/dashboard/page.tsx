@@ -426,22 +426,36 @@ export default function Dashboard() {
 
     setLoading(true);
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/create-checkout-session`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/upgrade-subscription`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
         },
         body: new URLSearchParams({
           user_id: user.id,
-          plan: selectedPlan,
-          success_url: `${window.location.origin}/dashboard?upgrade=success`,
-          cancel_url: `${window.location.origin}/dashboard`
+          new_plan: selectedPlan
         })
       });
 
       if (response.ok) {
         const data = await response.json();
-        window.location.href = `https://checkout.stripe.com/pay/${data.session_id}`;
+        if (data.success && data.session_id) {
+          // Redirect to Stripe Checkout using loadStripe
+          const { loadStripe } = await import('@stripe/stripe-js');
+          const stripe = await loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
+          if (stripe) {
+            const { error } = await stripe.redirectToCheckout({
+              sessionId: data.session_id,
+            });
+            if (error) {
+              setError('Error redirecting to payment: ' + error.message);
+            }
+          } else {
+            setError('Failed to load Stripe');
+          }
+        } else {
+          setError('Failed to create checkout session');
+        }
       } else {
         setError('Failed to create checkout session');
       }

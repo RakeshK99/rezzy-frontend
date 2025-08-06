@@ -132,12 +132,7 @@ export default function Dashboard() {
       } else {
         const errorData = await createResponse.json();
         console.error('Failed to create user:', errorData);
-        
-        // If backend is having issues, still allow user to proceed
-        console.log('Backend user creation failed, but allowing user to proceed...');
-        setUserCreated(true);
-        setPlan('free');
-        setError('Backend service is experiencing issues. Some features may be limited.');
+        setError('Failed to create user account. Please try refreshing the page.');
       }
     } catch (_error) {
       console.error('Error creating/getting user:', _error);
@@ -146,11 +141,6 @@ export default function Dashboard() {
       } else {
         setError('Failed to connect to backend service. Please ensure the backend is running.');
       }
-      
-      // Allow user to proceed even if backend fails
-      console.log('Allowing user to proceed despite backend issues...');
-      setUserCreated(true);
-      setPlan('free');
     }
   }, [user]);
 

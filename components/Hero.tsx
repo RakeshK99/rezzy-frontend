@@ -16,7 +16,7 @@ export default function Hero() {
   };
 
   return (
-    <section className="w-full min-h-screen flex items-center justify-center flex-col text-center bg-black text-white px-4 relative overflow-hidden">
+    <section className="w-full min-h-screen flex items-center justify-center flex-col text-center bg-black text-white px-4 sm:px-6 lg:px-8 relative overflow-hidden">
       {/* Enhanced 3D Background */}
       <div className="absolute inset-0 bg-gradient-to-br from-black via-gray-900 to-black"></div>
       
@@ -33,32 +33,35 @@ export default function Hero() {
         <div className="absolute top-1/3 right-1/4 w-1 h-1 bg-pink-400/40 rounded-full animate-float delay-3000"></div>
       </div>
 
-      <div className="relative z-10 max-w-4xl mx-auto">
-        {/* Enhanced Title with 3D Effects */}
-        <div className="mb-8">
-          <h1 className="text-5xl sm:text-7xl md:text-8xl font-bold leading-tight">
-            Perfect Your Resume with{' '}
-            <span className="gradient-text-animated bg-gradient-to-r from-pink-500 via-purple-500 to-blue-500 bg-clip-text text-transparent">
-              Rezzy
+      <div className="relative z-10 max-w-6xl mx-auto w-full">
+        {/* Enhanced Title with 3D Effects - Fixed Text Overflow */}
+        <div className="mb-8 sm:mb-12">
+          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-bold leading-tight px-2">
+            <span className="block">Perfect Your Resume</span>
+            <span className="block mt-2 sm:mt-4">
+              with{' '}
+              <span className="gradient-text-animated bg-gradient-to-r from-pink-500 via-purple-500 to-blue-500 bg-clip-text text-transparent">
+                Rezzy
+              </span>
             </span>
           </h1>
         </div>
         
         {/* Enhanced Description with Glass Effect */}
-        <div className="glass-effect-dark backdrop-blur-sm rounded-3xl p-8 mb-12 border border-gray-800/50 shadow-2xl transform hover:scale-105 transition-all duration-300">
-          <p className="text-xl sm:text-2xl max-w-3xl mx-auto text-gray-300 leading-relaxed">
+        <div className="glass-effect-dark backdrop-blur-sm rounded-3xl p-6 sm:p-8 mb-8 sm:mb-12 border border-gray-800/50 shadow-2xl transform hover:scale-105 transition-all duration-300 mx-4">
+          <p className="text-lg sm:text-xl md:text-2xl max-w-4xl mx-auto text-gray-300 leading-relaxed">
             Instantly improve your resume using AI. Tailor it to jobs, pass ATS scans, and get interview-ready — in seconds.
           </p>
         </div>
         
         {/* Enhanced CTA Buttons */}
-        <div className="flex flex-col sm:flex-row gap-6 justify-center items-center mb-16">
+        <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 justify-center items-center mb-12 sm:mb-16 px-4">
           {isSignedIn ? (
             <Link href="/dashboard">
               <Button 
                 variant="default" 
                 size="lg" 
-                className="text-lg px-8 py-4 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 transform hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-xl pulse-glow"
+                className="text-base sm:text-lg px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 transform hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-xl pulse-glow w-full sm:w-auto"
               >
                 Go to Dashboard
               </Button>
@@ -68,7 +71,7 @@ export default function Hero() {
               variant="default" 
               size="lg"
               onClick={() => openSignIn({ redirectUrl: '/dashboard' })}
-              className="text-lg px-8 py-4 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 transform hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-xl pulse-glow"
+              className="text-base sm:text-lg px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 transform hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-xl pulse-glow w-full sm:w-auto"
             >
               Try Free
             </Button>
@@ -78,42 +81,42 @@ export default function Hero() {
             variant="outline" 
             size="lg"
             onClick={scrollToFeatures}
-            className="text-lg px-8 py-4 border-2 border-gray-600 hover:border-white hover:bg-white/10 transform hover:scale-105 transition-all duration-300"
+            className="text-base sm:text-lg px-6 sm:px-8 py-3 sm:py-4 border-2 border-gray-600 hover:border-white hover:bg-white/10 transform hover:scale-105 transition-all duration-300 w-full sm:w-auto"
           >
             Learn More
           </Button>
         </div>
 
         {/* Enhanced Stats with 3D Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-16">
-          <div className="glass-effect-dark backdrop-blur-sm rounded-3xl p-6 border border-gray-800/50 shadow-2xl transform hover:scale-105 transition-all duration-300 card-3d">
-            <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 mt-12 sm:mt-16 px-4">
+          <div className="glass-effect-dark backdrop-blur-sm rounded-3xl p-4 sm:p-6 border border-gray-800/50 shadow-2xl transform hover:scale-105 transition-all duration-300 card-3d">
+            <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-3 sm:mb-4">
+              <svg className="w-6 h-6 sm:w-8 sm:h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
-            <div className="text-3xl font-bold text-white mb-2 gradient-text-animated">95%</div>
-            <div className="text-gray-400">ATS Pass Rate</div>
+            <div className="text-2xl sm:text-3xl font-bold text-white mb-1 sm:mb-2 gradient-text-animated">95%</div>
+            <div className="text-sm sm:text-base text-gray-400">ATS Pass Rate</div>
           </div>
           
-          <div className="glass-effect-dark backdrop-blur-sm rounded-3xl p-6 border border-gray-800/50 shadow-2xl transform hover:scale-105 transition-all duration-300 card-3d">
-            <div className="w-16 h-16 bg-gradient-to-r from-green-500 to-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="glass-effect-dark backdrop-blur-sm rounded-3xl p-4 sm:p-6 border border-gray-800/50 shadow-2xl transform hover:scale-105 transition-all duration-300 card-3d">
+            <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-r from-green-500 to-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-3 sm:mb-4">
+              <svg className="w-6 h-6 sm:w-8 sm:h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
               </svg>
             </div>
-            <div className="text-3xl font-bold text-white mb-2 gradient-text-animated">2x</div>
-            <div className="text-gray-400">More Interviews</div>
+            <div className="text-2xl sm:text-3xl font-bold text-white mb-1 sm:mb-2 gradient-text-animated">2x</div>
+            <div className="text-sm sm:text-base text-gray-400">More Interviews</div>
           </div>
           
-          <div className="glass-effect-dark backdrop-blur-sm rounded-3xl p-6 border border-gray-800/50 shadow-2xl transform hover:scale-105 transition-all duration-300 card-3d">
-            <div className="w-16 h-16 bg-gradient-to-r from-orange-500 to-red-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="glass-effect-dark backdrop-blur-sm rounded-3xl p-4 sm:p-6 border border-gray-800/50 shadow-2xl transform hover:scale-105 transition-all duration-300 card-3d">
+            <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-r from-orange-500 to-red-600 rounded-2xl flex items-center justify-center mx-auto mb-3 sm:mb-4">
+              <svg className="w-6 h-6 sm:w-8 sm:h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
-            <div className="text-3xl font-bold text-white mb-2 gradient-text-animated">30s</div>
-            <div className="text-gray-400">Resume Analysis</div>
+            <div className="text-2xl sm:text-3xl font-bold text-white mb-1 sm:mb-2 gradient-text-animated">30s</div>
+            <div className="text-sm sm:text-base text-gray-400">Resume Analysis</div>
           </div>
         </div>
       </div>

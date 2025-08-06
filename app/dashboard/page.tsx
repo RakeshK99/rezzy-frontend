@@ -27,7 +27,24 @@ export default function Dashboard() {
   const [error, setError] = useState('');
   const [userCreated, setUserCreated] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
-  const [userProfile, setUserProfile] = useState<any>(null);
+  const [userProfile, setUserProfile] = useState<{
+    id: string;
+    email: string;
+    first_name: string;
+    middle_name?: string;
+    last_name: string;
+    plan: string;
+    position_level?: string;
+    job_category?: string;
+    current_resume?: {
+      id: number;
+      filename: string;
+      original_filename: string;
+      created_at: string;
+    };
+    created_at: string;
+    updated_at: string;
+  } | null>(null);
 
   // Active tab state
   const [activeTab, setActiveTab] = useState<'overview' | 'profile' | 'jobs' | 'tracker' | 'interview' | 'subscription'>('overview');

@@ -113,7 +113,7 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
               Welcome to Rezzy, {user?.firstName}!
             </h1>
             <p className="text-gray-400 text-lg">
-              Let's personalize your experience by learning about your career goals
+              Let&apos;s personalize your experience by learning about your career goals
             </p>
           </div>
 

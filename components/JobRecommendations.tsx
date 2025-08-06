@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useUser } from '@clerk/nextjs';
 import { Button } from './Button';
 
@@ -21,7 +21,10 @@ interface JobRecommendation {
 }
 
 interface JobRecommendationsProps {
-  userProfile: any;
+  userProfile: {
+    position_level?: string;
+    job_category?: string;
+  };
 }
 
 const TIME_FILTERS = [
@@ -39,7 +42,7 @@ export default function JobRecommendations({ userProfile }: JobRecommendationsPr
   const [generatingResume, setGeneratingResume] = useState<string | null>(null);
   const [error, setError] = useState('');
 
-  const fetchRecommendations = async () => {
+  const fetchRecommendations = useCallback(async () => {
     if (!user?.id) return;
 
     setLoading(true);
@@ -59,11 +62,11 @@ export default function JobRecommendations({ userProfile }: JobRecommendationsPr
     } finally {
       setLoading(false);
     }
-  };
+  }, [user?.id, selectedTimeFilter]);
 
   useEffect(() => {
     fetchRecommendations();
-  }, [selectedTimeFilter, user?.id]);
+  }, [selectedTimeFilter, user?.id, fetchRecommendations]);
 
   const generateOptimizedResume = async (job: JobRecommendation) => {
     if (!user?.id) return;

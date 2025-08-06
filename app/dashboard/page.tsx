@@ -91,22 +91,7 @@ export default function Dashboard() {
       if (createResponse.ok) {
         console.log('User created/updated successfully');
         
-        // Get user profile to check if onboarding is needed
-        const profileResponse = await fetch(`${apiUrl}/api/user-profile/${user?.id}`, {
-          signal: AbortSignal.timeout(5000)
-        });
-        
-        if (profileResponse.ok) {
-          const profileData = await profileResponse.json();
-          setUserProfile(profileData);
-          
-          // Check if user needs onboarding (no position level or job category set)
-          if (!profileData.position_level || !profileData.job_category) {
-            setShowOnboarding(true);
-          }
-        }
-        
-        // Now get the user plan
+        // Get the user plan first
         const planResponse = await fetch(`${apiUrl}/api/get-plan?user_id=${user?.id}`, {
           signal: AbortSignal.timeout(5000)
         });
@@ -117,6 +102,29 @@ export default function Dashboard() {
           setUsage(planData.usage);
           setUserCreated(true);
           setError(''); // Clear any previous errors
+          
+          // Now try to get user profile to check if onboarding is needed
+          try {
+            const profileResponse = await fetch(`${apiUrl}/api/user-profile/${user?.id}`, {
+              signal: AbortSignal.timeout(5000)
+            });
+            
+            if (profileResponse.ok) {
+              const profileData = await profileResponse.json();
+              setUserProfile(profileData);
+              
+              // Check if user needs onboarding (no position level or job category set)
+              if (!profileData.position_level || !profileData.job_category) {
+                setShowOnboarding(true);
+              }
+            } else {
+              // If profile not found, user needs onboarding
+              setShowOnboarding(true);
+            }
+          } catch (profileError) {
+            console.warn('Profile fetch failed, showing onboarding:', profileError);
+            setShowOnboarding(true);
+          }
         } else {
           console.error('Failed to get plan data');
           setError('Failed to load user plan data.');

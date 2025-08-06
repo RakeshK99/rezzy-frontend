@@ -54,8 +54,9 @@ export default function Dashboard() {
       console.log('Creating/getting user for:', user?.id);
       
       // Check if backend is available first
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://rezzy-backend-production.up.railway.app';
       try {
-        const healthCheck = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/health`, {
+        const healthCheck = await fetch(`${apiUrl}/api/health`, {
           method: 'GET',
           signal: AbortSignal.timeout(5000) // 5 second timeout
         });
@@ -70,7 +71,7 @@ export default function Dashboard() {
       
       // Always try to create user first (the backend will handle duplicates)
       console.log('Creating user...');
-      const createResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/create-user`, {
+      const createResponse = await fetch(`${apiUrl}/api/create-user`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
@@ -91,7 +92,7 @@ export default function Dashboard() {
         console.log('User created/updated successfully');
         
         // Get user profile to check if onboarding is needed
-        const profileResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/user-profile/${user?.id}`, {
+        const profileResponse = await fetch(`${apiUrl}/api/user-profile/${user?.id}`, {
           signal: AbortSignal.timeout(5000)
         });
         
@@ -106,7 +107,7 @@ export default function Dashboard() {
         }
         
         // Now get the user plan
-        const planResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/get-plan?user_id=${user?.id}`, {
+        const planResponse = await fetch(`${apiUrl}/api/get-plan?user_id=${user?.id}`, {
           signal: AbortSignal.timeout(5000)
         });
         if (planResponse.ok) {

@@ -64,7 +64,8 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
     setError('');
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/update-profile`, {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://rezzy-backend-production.up.railway.app';
+      const response = await fetch(`${apiUrl}/api/update-profile`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',

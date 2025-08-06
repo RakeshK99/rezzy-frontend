@@ -49,7 +49,8 @@ export default function JobRecommendations({ userProfile }: JobRecommendationsPr
     setError('');
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/job-recommendations/${user.id}?time_filter=${selectedTimeFilter}`);
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://rezzy-backend-production.up.railway.app';
+      const response = await fetch(`${apiUrl}/api/job-recommendations/${user.id}?time_filter=${selectedTimeFilter}`);
       
       if (response.ok) {
         const data = await response.json();
@@ -75,7 +76,8 @@ export default function JobRecommendations({ userProfile }: JobRecommendationsPr
     setError('');
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/generate-optimized-resume`, {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://rezzy-backend-production.up.railway.app';
+      const response = await fetch(`${apiUrl}/api/generate-optimized-resume`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',

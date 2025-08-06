@@ -54,7 +54,7 @@ export default function Dashboard() {
       console.log('Creating/getting user for:', user?.id);
       
       // Check if backend is available first
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://rezzy-backend-production.up.railway.app';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://grateful-transformation-production.up.railway.app';
       try {
         const healthCheck = await fetch(`${apiUrl}/api/health`, {
           method: 'GET',

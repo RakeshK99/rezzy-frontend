@@ -55,6 +55,57 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
   const [error, setError] = useState('');
   const [retryCount, setRetryCount] = useState(0);
 
+  // Add effect to retry syncing data if needed
+  useEffect(() => {
+    const retrySync = async () => {
+      if (typeof window === 'undefined') return;
+      
+      const storedData = localStorage.getItem('rezzy_onboarding_data');
+      if (!storedData) return;
+      
+      try {
+        const data = JSON.parse(storedData);
+        if (data.needs_sync && data.timestamp) {
+          // Only retry if data is less than 1 hour old
+          const oneHourAgo = Date.now() - (60 * 60 * 1000);
+          if (data.timestamp > oneHourAgo) {
+            console.log('Attempting to sync stored onboarding data...');
+            
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://grateful-transformation-production.up.railway.app';
+            const formData = new FormData();
+            formData.append('user_id', user?.id || '');
+            formData.append('first_name', user?.firstName || '');
+            formData.append('middle_name', '');
+            formData.append('last_name', user?.lastName || '');
+            formData.append('position_level', data.position_level);
+            formData.append('job_category', data.job_category);
+            
+            const response = await fetch(`${apiUrl}/api/update-profile`, {
+              method: 'POST',
+              body: formData,
+              mode: 'cors',
+              credentials: 'omit'
+            });
+            
+            if (response.ok) {
+              console.log('Successfully synced stored onboarding data');
+              localStorage.removeItem('rezzy_onboarding_data');
+            }
+          } else {
+            // Data is too old, remove it
+            localStorage.removeItem('rezzy_onboarding_data');
+          }
+        }
+      } catch (error) {
+        console.warn('Failed to sync stored onboarding data:', error);
+      }
+    };
+    
+    // Retry sync after a short delay
+    const timeoutId = setTimeout(retrySync, 2000);
+    return () => clearTimeout(timeoutId);
+  }, [user]);
+
   const handleSave = async (isRetry = false) => {
     if (!positionLevel || !jobCategory) {
       setError('Please select both position level and job category');
@@ -71,100 +122,134 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://grateful-transformation-production.up.railway.app';
       
-      // Check backend health first
-      try {
-        const healthResponse = await fetch(`${apiUrl}/api/health`, {
-          method: 'GET',
-          signal: AbortSignal.timeout(5000) // 5 second timeout
-        });
-        
-        if (!healthResponse.ok) {
-          console.warn('Backend health check failed with status:', healthResponse.status);
-          // Don't block the request, just log the warning
-        }
-      } catch (healthError) {
-        console.warn('Backend health check failed:', healthError);
-        // Don't block the request, just log the warning and continue
-      }
-      
-      // Add timeout to prevent hanging requests
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
-      
+      // Create FormData with all required fields
+      const formData = new FormData();
+      formData.append('user_id', user?.id || '');
+      formData.append('first_name', user?.firstName || '');
+      formData.append('middle_name', '');
+      formData.append('last_name', user?.lastName || '');
+      formData.append('position_level', positionLevel);
+      formData.append('job_category', jobCategory);
+
       console.log('Sending profile update request:', {
         user_id: user?.id,
         first_name: user?.firstName,
         last_name: user?.lastName,
         position_level: positionLevel,
-        job_category: jobCategory
+        job_category: jobCategory,
+        apiUrl: apiUrl
       });
 
+      // Add timeout to prevent hanging requests
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => {
+        controller.abort();
+        console.log('Request timed out after 15 seconds');
+      }, 15000); // 15 second timeout
+
+      // Make the request with proper headers and error handling
       const response = await fetch(`${apiUrl}/api/update-profile`, {
         method: 'POST',
-        body: (() => {
-          const formData = new FormData();
-          formData.append('user_id', user?.id || '');
-          formData.append('first_name', user?.firstName || '');
-          formData.append('middle_name', '');
-          formData.append('last_name', user?.lastName || '');
-          formData.append('position_level', positionLevel);
-          formData.append('job_category', jobCategory);
-          return formData;
-        })(),
-        signal: controller.signal
+        body: formData,
+        signal: controller.signal,
+        headers: {
+          // Don't set Content-Type for FormData - browser will set it automatically with boundary
+        },
+        mode: 'cors', // Explicitly enable CORS
+        credentials: 'omit' // Don't send cookies for this request
       });
 
       clearTimeout(timeoutId);
 
+      console.log('Response received:', {
+        status: response.status,
+        statusText: response.statusText,
+        ok: response.ok,
+        headers: Object.fromEntries(response.headers.entries())
+      });
+
       if (response.ok) {
-        const data = await response.json();
-        console.log('Profile updated successfully:', data);
-        onComplete();
+        try {
+          const data = await response.json();
+          console.log('Profile updated successfully:', data);
+          onComplete();
+          return;
+        } catch (parseError) {
+          console.warn('Response was ok but couldn\'t parse JSON:', parseError);
+          // Even if we can't parse the response, if status is ok, consider it successful
+          onComplete();
+          return;
+        }
       } else {
-        console.error('Profile update failed - Status:', response.status, response.statusText);
+        // Handle different error status codes
+        let errorMessage = '';
         
-        // Try to get error details from response
         try {
           const errorData = await response.json();
-          console.error('Profile update failed:', errorData);
+          console.error('Profile update failed with error data:', errorData);
           
-          // Provide more specific error messages
-          if (response.status === 404) {
-            setError('User not found. Please refresh the page and try again.');
-          } else if (response.status === 500) {
-            setError('Server error. Please try again in a few moments.');
-          } else if (errorData.detail) {
-            setError(errorData.detail);
+          if (errorData.detail) {
+            errorMessage = errorData.detail;
+          } else if (errorData.message) {
+            errorMessage = errorData.message;
           } else {
-            setError(`Failed to save preferences (${response.status}). Please try again.`);
+            errorMessage = `Server error (${response.status}): ${response.statusText}`;
           }
         } catch (parseError) {
-          console.error('Profile update failed:', response.status, response.statusText);
+          console.error('Could not parse error response:', parseError);
           
-          // Provide fallback error messages based on status code
-          if (response.status === 404) {
-            setError('User not found. Please refresh the page and try again.');
-          } else if (response.status === 500) {
-            setError('Server error. Please try again in a few moments.');
-          } else {
-            setError(`Failed to save preferences (${response.status}). Please try again.`);
+          // Provide specific error messages based on status code
+          switch (response.status) {
+            case 400:
+              errorMessage = 'Invalid request data. Please check your selections and try again.';
+              break;
+            case 401:
+              errorMessage = 'Authentication required. Please refresh the page and try again.';
+              break;
+            case 403:
+              errorMessage = 'Access denied. Please check your permissions.';
+              break;
+            case 404:
+              errorMessage = 'User not found. Please refresh the page and try again.';
+              break;
+            case 422:
+              errorMessage = 'Invalid data format. Please try again.';
+              break;
+            case 500:
+              errorMessage = 'Server error. Please try again in a few moments.';
+              break;
+            case 502:
+            case 503:
+            case 504:
+              errorMessage = 'Service temporarily unavailable. Please try again in a few moments.';
+              break;
+            default:
+              errorMessage = `Request failed (${response.status}): ${response.statusText}`;
           }
         }
+        
+        setError(errorMessage);
       }
     } catch (err) {
       console.error('Network error during profile update:', err);
       
+      let errorMessage = 'Network error. Please check your connection and try again.';
+      
       if (err instanceof Error) {
         if (err.name === 'AbortError') {
-          setError('Request timed out. Please check your connection and try again.');
+          errorMessage = 'Request timed out. Please check your connection and try again.';
         } else if (err.message.includes('fetch')) {
-          setError('Network error. Please check your connection and try again.');
+          errorMessage = 'Network error. Please check your connection and try again.';
+        } else if (err.message.includes('CORS')) {
+          errorMessage = 'Cross-origin request blocked. Please try again.';
+        } else if (err.message.includes('Failed to fetch')) {
+          errorMessage = 'Unable to reach the server. Please check your connection and try again.';
         } else {
-          setError(`Error: ${err.message}. Please try again.`);
+          errorMessage = `Connection error: ${err.message}`;
         }
-      } else {
-        setError('Network error. Please check your connection and try again.');
       }
+      
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -183,6 +268,33 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
   const handleSkip = () => {
     // Allow user to skip onboarding and proceed to dashboard
     console.log('User skipped onboarding, proceeding with default values');
+    
+    // Store the selections locally for potential later sync
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('rezzy_onboarding_data', JSON.stringify({
+        position_level: positionLevel,
+        job_category: jobCategory,
+        timestamp: Date.now()
+      }));
+    }
+    
+    onComplete();
+  };
+
+  const handleContinueAnyway = () => {
+    // User wants to continue despite the error
+    console.log('User chose to continue despite network error');
+    
+    // Store the selections locally for potential later sync
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('rezzy_onboarding_data', JSON.stringify({
+        position_level: positionLevel,
+        job_category: jobCategory,
+        timestamp: Date.now(),
+        needs_sync: true
+      }));
+    }
+    
     onComplete();
   };
 
@@ -311,7 +423,7 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
                   </Button>
                 )}
                 <Button
-                  onClick={handleSkip}
+                  onClick={handleContinueAnyway}
                   size="sm"
                   variant="outline"
                   className="px-4 py-2 rounded-lg text-sm"

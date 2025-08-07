@@ -57,6 +57,12 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
 
   // Add effect to retry syncing data if needed
   useEffect(() => {
+    // Clear any existing onboarding data to start fresh
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('rezzy_onboarding_data');
+      console.log('🧹 Cleared existing onboarding data');
+    }
+    
     const retrySync = async () => {
       if (typeof window === 'undefined') return;
       

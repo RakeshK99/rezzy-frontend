@@ -91,19 +91,26 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
       
+      console.log('Sending profile update request:', {
+        user_id: user?.id,
+        first_name: user?.firstName,
+        last_name: user?.lastName,
+        position_level: positionLevel,
+        job_category: jobCategory
+      });
+
       const response = await fetch(`${apiUrl}/api/update-profile`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: new URLSearchParams({
-          user_id: user?.id || '',
-          first_name: user?.firstName || '',
-          middle_name: '',
-          last_name: user?.lastName || '',
-          position_level: positionLevel,
-          job_category: jobCategory
-        }),
+        body: (() => {
+          const formData = new FormData();
+          formData.append('user_id', user?.id || '');
+          formData.append('first_name', user?.firstName || '');
+          formData.append('middle_name', '');
+          formData.append('last_name', user?.lastName || '');
+          formData.append('position_level', positionLevel);
+          formData.append('job_category', jobCategory);
+          return formData;
+        })(),
         signal: controller.signal
       });
 
@@ -114,6 +121,8 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
         console.log('Profile updated successfully:', data);
         onComplete();
       } else {
+        console.error('Profile update failed - Status:', response.status, response.statusText);
+        
         // Try to get error details from response
         try {
           const errorData = await response.json();

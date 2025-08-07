@@ -120,15 +120,42 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
     setError('');
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://grateful-transformation-production.up.railway.app';
+      // Try multiple API URLs to ensure connectivity
+      const apiUrls = [
+        process.env.NEXT_PUBLIC_API_URL,
+        'https://grateful-transformation-production.up.railway.app',
+        'https://rezzy-backend-production.up.railway.app'
+      ].filter(Boolean);
+      
+      const apiUrl = apiUrls[0] || 'https://grateful-transformation-production.up.railway.app';
       
       console.log('Environment check:', {
         NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
         apiUrl: apiUrl,
+        allApiUrls: apiUrls,
         user_id: user?.id,
         position_level: positionLevel,
         job_category: jobCategory
       });
+      
+      // Test connectivity first
+      try {
+        const testResponse = await fetch(`${apiUrl}/api/health`, {
+          method: 'GET',
+          mode: 'cors',
+          credentials: 'omit',
+          signal: AbortSignal.timeout(5000)
+        });
+        
+        if (!testResponse.ok) {
+          console.warn('Health check failed, but continuing with request');
+        } else {
+          console.log('Health check successful');
+        }
+      } catch (healthError) {
+        console.warn('Health check failed:', healthError);
+        // Continue anyway
+      }
       
       // Create FormData with all required fields
       const formData = new FormData();
@@ -155,29 +182,54 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
         console.log('Request timed out after 15 seconds');
       }, 15000); // 15 second timeout
 
-      // Make the request with proper headers and error handling
-      const response = await fetch(`${apiUrl}/api/update-profile`, {
-        method: 'POST',
-        body: formData,
-        signal: controller.signal,
-        headers: {
-          // Don't set Content-Type for FormData - browser will set it automatically with boundary
-        },
-        mode: 'cors', // Explicitly enable CORS
-        credentials: 'omit' // Don't send cookies for this request
-      });
+      // Try multiple API URLs if needed
+      let response = null;
+      let lastError = null;
+      
+      for (const tryApiUrl of apiUrls) {
+        try {
+          console.log(`Trying API URL: ${tryApiUrl}`);
+          
+          // Make the request with proper headers and error handling
+          response = await fetch(`${tryApiUrl}/api/update-profile`, {
+            method: 'POST',
+            body: formData,
+            signal: controller.signal,
+            headers: {
+              // Don't set Content-Type for FormData - browser will set it automatically with boundary
+            },
+            mode: 'cors', // Explicitly enable CORS
+            credentials: 'omit' // Don't send cookies for this request
+          });
+
+          console.log('Response received:', {
+            status: response.status,
+            statusText: response.statusText,
+            ok: response.ok,
+            headers: Object.fromEntries(response.headers.entries())
+          });
+
+          if (response.ok) {
+            console.log(`Success with API URL: ${tryApiUrl}`);
+            break; // Success, exit the loop
+          } else {
+            console.warn(`Failed with API URL ${tryApiUrl}: ${response.status} ${response.statusText}`);
+            lastError = new Error(`HTTP ${response.status}: ${response.statusText}`);
+          }
+        } catch (err) {
+          console.warn(`Error with API URL ${tryApiUrl}:`, err);
+          lastError = err;
+          continue; // Try next URL
+        }
+      }
 
       clearTimeout(timeoutId);
 
-      console.log('Response received:', {
-        status: response.status,
-        statusText: response.statusText,
-        ok: response.ok,
-        headers: Object.fromEntries(response.headers.entries())
-      });
+      if (!response || !response.ok) {
+        throw lastError || new Error('All API URLs failed');
+      }
 
-      if (response.ok) {
-        try {
+      try {
           const data = await response.json();
           console.log('Profile updated successfully:', data);
           onComplete();
@@ -188,56 +240,6 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
           onComplete();
           return;
         }
-      } else {
-        // Handle different error status codes
-        let errorMessage = '';
-        
-        try {
-          const errorData = await response.json();
-          console.error('Profile update failed with error data:', errorData);
-          
-          if (errorData.detail) {
-            errorMessage = errorData.detail;
-          } else if (errorData.message) {
-            errorMessage = errorData.message;
-          } else {
-            errorMessage = `Server error (${response.status}): ${response.statusText}`;
-          }
-        } catch (parseError) {
-          console.error('Could not parse error response:', parseError);
-          
-          // Provide specific error messages based on status code
-          switch (response.status) {
-            case 400:
-              errorMessage = 'Invalid request data. Please check your selections and try again.';
-              break;
-            case 401:
-              errorMessage = 'Authentication required. Please refresh the page and try again.';
-              break;
-            case 403:
-              errorMessage = 'Access denied. Please check your permissions.';
-              break;
-            case 404:
-              errorMessage = 'User not found. Please refresh the page and try again.';
-              break;
-            case 422:
-              errorMessage = 'Invalid data format. Please try again.';
-              break;
-            case 500:
-              errorMessage = 'Server error. Please try again in a few moments.';
-              break;
-            case 502:
-            case 503:
-            case 504:
-              errorMessage = 'Service temporarily unavailable. Please try again in a few moments.';
-              break;
-            default:
-              errorMessage = `Request failed (${response.status}): ${response.statusText}`;
-          }
-        }
-        
-        setError(errorMessage);
-      }
     } catch (err) {
       console.error('Network error during profile update:', err);
       

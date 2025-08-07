@@ -53,11 +53,16 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
   const [jobCategory, setJobCategory] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [retryCount, setRetryCount] = useState(0);
 
-  const handleSave = async () => {
+  const handleSave = async (isRetry = false) => {
     if (!positionLevel || !jobCategory) {
       setError('Please select both position level and job category');
       return;
+    }
+
+    if (isRetry) {
+      setRetryCount(prev => prev + 1);
     }
 
     setLoading(true);
@@ -65,6 +70,28 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
 
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://grateful-transformation-production.up.railway.app';
+      
+      // Check backend health first
+      try {
+        const healthResponse = await fetch(`${apiUrl}/api/health`, {
+          method: 'GET',
+          signal: AbortSignal.timeout(5000) // 5 second timeout
+        });
+        
+        if (!healthResponse.ok) {
+          throw new Error('Backend service is not responding');
+        }
+      } catch (healthError) {
+        console.warn('Backend health check failed:', healthError);
+        setError('Backend service is not available. Please try again in a few moments.');
+        setLoading(false);
+        return;
+      }
+      
+      // Add timeout to prevent hanging requests
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+      
       const response = await fetch(`${apiUrl}/api/update-profile`, {
         method: 'POST',
         headers: {
@@ -78,18 +105,58 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
           position_level: positionLevel,
           job_category: jobCategory
         }),
+        signal: controller.signal
       });
 
+      clearTimeout(timeoutId);
+
       if (response.ok) {
+        const data = await response.json();
+        console.log('Profile updated successfully:', data);
         onComplete();
       } else {
-        setError('Failed to save preferences. Please try again.');
+        // Try to get error details from response
+        try {
+          const errorData = await response.json();
+          console.error('Profile update failed:', errorData);
+          setError(errorData.detail || `Failed to save preferences (${response.status}). Please try again.`);
+        } catch (parseError) {
+          console.error('Profile update failed:', response.status, response.statusText);
+          setError(`Failed to save preferences (${response.status}). Please try again.`);
+        }
       }
     } catch (err) {
-      setError('Network error. Please check your connection and try again.');
+      console.error('Network error during profile update:', err);
+      
+      if (err instanceof Error) {
+        if (err.name === 'AbortError') {
+          setError('Request timed out. Please check your connection and try again.');
+        } else if (err.message.includes('fetch')) {
+          setError('Network error. Please check your connection and try again.');
+        } else {
+          setError(`Error: ${err.message}. Please try again.`);
+        }
+      } else {
+        setError('Network error. Please check your connection and try again.');
+      }
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleRetry = () => {
+    if (retryCount < 3) {
+      handleSave(true);
+    } else {
+      // After 3 retries, allow user to proceed with limited functionality
+      setError('Multiple connection attempts failed. You can continue with limited features or try again later.');
+    }
+  };
+
+  const handleSkip = () => {
+    // Allow user to skip onboarding and proceed to dashboard
+    console.log('User skipped onboarding, proceeding with default values');
+    onComplete();
   };
 
   return (
@@ -195,7 +262,26 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
           {/* Error Message */}
           {error && (
             <div className="mt-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl">
-              <p className="text-red-400 text-sm">{error}</p>
+              <p className="text-red-400 text-sm mb-3">{error}</p>
+              <div className="flex flex-col sm:flex-row gap-2">
+                {retryCount < 3 && (
+                  <Button
+                    onClick={handleRetry}
+                    size="sm"
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm"
+                  >
+                    Retry ({3 - retryCount} attempts left)
+                  </Button>
+                )}
+                <Button
+                  onClick={handleSkip}
+                  size="sm"
+                  variant="outline"
+                  className="px-4 py-2 rounded-lg text-sm"
+                >
+                  Continue Anyway
+                </Button>
+              </div>
             </div>
           )}
 

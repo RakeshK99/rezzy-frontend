@@ -243,10 +243,10 @@ export default function Dashboard() {
                 <Link href="/" className="text-gray-300 hover:text-white transition-colors">
                   Home
                 </Link>
-                <Link href="#features" className="text-gray-300 hover:text-white transition-colors">
+                <Link href="/#features" className="text-gray-300 hover:text-white transition-colors">
                   Features
                 </Link>
-                <Link href="#pricing" className="text-gray-300 hover:text-white transition-colors">
+                <Link href="/#pricing" className="text-gray-300 hover:text-white transition-colors">
                   Pricing
                 </Link>
               </nav>
@@ -531,14 +531,14 @@ export default function Dashboard() {
               {/* Job Recommendations Section */}
               {userProfile && (userProfile.position_level || userProfile.job_category) && (
                 <div className="mb-16">
-                  <JobRecommendations userProfile={userProfile} />
+                  <JobRecommendations userProfile={userProfile} onSwitchTab={setActiveTab} />
                 </div>
               )}
             </div>
           )}
 
           {activeTab === 'profile' && <Profile />}
-          {activeTab === 'jobs' && <JobMatcher />}
+          {activeTab === 'jobs' && <JobMatcher onSwitchTab={setActiveTab} />}
           {activeTab === 'tracker' && <JobTracker />}
           {activeTab === 'interview' && <InterviewPrep />}
           {activeTab === 'subscription' && <SubscriptionManager />}

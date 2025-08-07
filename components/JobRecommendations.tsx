@@ -25,6 +25,7 @@ interface JobRecommendationsProps {
     position_level?: string;
     job_category?: string;
   };
+  onSwitchTab?: (tab: 'overview' | 'profile' | 'jobs' | 'tracker' | 'interview' | 'subscription') => void;
 }
 
 const TIME_FILTERS = [
@@ -34,7 +35,7 @@ const TIME_FILTERS = [
   { value: '1m', label: 'Last Month' }
 ];
 
-export default function JobRecommendations({ userProfile }: JobRecommendationsProps) {
+export default function JobRecommendations({ userProfile, onSwitchTab }: JobRecommendationsProps) {
   const { user } = useUser();
   const [recommendations, setRecommendations] = useState<JobRecommendation[]>([]);
   const [loading, setLoading] = useState(false);
@@ -97,7 +98,14 @@ export default function JobRecommendations({ userProfile }: JobRecommendationsPr
         alert(`Optimized resume generated successfully! File: ${data.filename}`);
       } else {
         const errorData = await response.json();
-        setError(errorData.detail || 'Failed to generate optimized resume');
+        const errorMessage = errorData.detail || 'Failed to generate optimized resume';
+        
+        // Check if it's a resume upload error and provide better guidance
+        if (errorMessage.includes('No resume uploaded')) {
+          setError('No resume uploaded. Please upload your resume in the Profile section first.');
+        } else {
+          setError(errorMessage);
+        }
       }
     } catch (err) {
       setError('Network error. Please try again.');
@@ -145,7 +153,18 @@ export default function JobRecommendations({ userProfile }: JobRecommendationsPr
       {/* Error Message */}
       {error && (
         <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl">
-          <p className="text-red-400 text-sm">{error}</p>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <p className="text-red-400 text-sm">{error}</p>
+            {error.includes('No resume uploaded') && onSwitchTab && (
+              <Button
+                onClick={() => onSwitchTab('profile')}
+                size="sm"
+                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm"
+              >
+                Go to Profile
+              </Button>
+            )}
+          </div>
         </div>
       )}
 

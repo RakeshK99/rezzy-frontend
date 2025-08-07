@@ -38,7 +38,11 @@ const TIME_FILTERS = [
   { value: 'all', label: 'All Time' }
 ];
 
-export default function JobMatcher() {
+interface JobMatcherProps {
+  onSwitchTab?: (tab: 'overview' | 'profile' | 'jobs' | 'tracker' | 'interview' | 'subscription') => void;
+}
+
+export default function JobMatcher({ onSwitchTab }: JobMatcherProps) {
   const { user } = useUser();
   const [jobs, setJobs] = useState<JobPosting[]>([]);
   const [optimizedResumes, setOptimizedResumes] = useState<OptimizedResume[]>([]);
@@ -92,7 +96,14 @@ export default function JobMatcher() {
         }
       } else {
         const errorData = await response.json();
-        setMessage(errorData.detail || 'Failed to search jobs');
+        const errorMessage = errorData.detail || 'Failed to search jobs';
+        
+        // Check if it's a resume upload error and provide better guidance
+        if (errorMessage.includes('No resume uploaded')) {
+          setMessage('No resume uploaded. Please upload your resume in the Profile section first.');
+        } else {
+          setMessage(errorMessage);
+        }
         setMessageType('error');
       }
     } catch (error) {
@@ -258,7 +269,18 @@ export default function JobMatcher() {
               ? 'bg-green-500/10 border border-green-500/20 text-green-400' 
               : 'bg-red-500/10 border border-red-500/20 text-red-400'
           }`}>
-            {message}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <p className="text-sm">{message}</p>
+              {message.includes('No resume uploaded') && onSwitchTab && (
+                <Button
+                  onClick={() => onSwitchTab('profile')}
+                  size="sm"
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm"
+                >
+                  Go to Profile
+                </Button>
+              )}
+            </div>
           </div>
         )}
 

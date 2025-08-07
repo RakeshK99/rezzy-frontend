@@ -122,6 +122,14 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://grateful-transformation-production.up.railway.app';
       
+      console.log('Environment check:', {
+        NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
+        apiUrl: apiUrl,
+        user_id: user?.id,
+        position_level: positionLevel,
+        job_category: jobCategory
+      });
+      
       // Create FormData with all required fields
       const formData = new FormData();
       formData.append('user_id', user?.id || '');

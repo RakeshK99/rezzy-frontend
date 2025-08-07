@@ -159,6 +159,10 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
     onComplete();
   };
 
+  const handleCompleteSetup = () => {
+    handleSave(false);
+  };
+
   return (
     <div className="min-h-screen bg-black flex items-center justify-center p-6">
       {/* Animated Background */}
@@ -308,7 +312,7 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
                 </Button>
               ) : (
                 <Button
-                  onClick={handleSave}
+                  onClick={handleCompleteSetup}
                   disabled={loading || !positionLevel || !jobCategory}
                   className="px-6 py-3"
                 >

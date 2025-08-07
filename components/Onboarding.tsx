@@ -79,13 +79,12 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
         });
         
         if (!healthResponse.ok) {
-          throw new Error('Backend service is not responding');
+          console.warn('Backend health check failed with status:', healthResponse.status);
+          // Don't block the request, just log the warning
         }
       } catch (healthError) {
         console.warn('Backend health check failed:', healthError);
-        setError('Backend service is not available. Please try again in a few moments.');
-        setLoading(false);
-        return;
+        // Don't block the request, just log the warning and continue
       }
       
       // Add timeout to prevent hanging requests
@@ -119,10 +118,28 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
         try {
           const errorData = await response.json();
           console.error('Profile update failed:', errorData);
-          setError(errorData.detail || `Failed to save preferences (${response.status}). Please try again.`);
+          
+          // Provide more specific error messages
+          if (response.status === 404) {
+            setError('User not found. Please refresh the page and try again.');
+          } else if (response.status === 500) {
+            setError('Server error. Please try again in a few moments.');
+          } else if (errorData.detail) {
+            setError(errorData.detail);
+          } else {
+            setError(`Failed to save preferences (${response.status}). Please try again.`);
+          }
         } catch (parseError) {
           console.error('Profile update failed:', response.status, response.statusText);
-          setError(`Failed to save preferences (${response.status}). Please try again.`);
+          
+          // Provide fallback error messages based on status code
+          if (response.status === 404) {
+            setError('User not found. Please refresh the page and try again.');
+          } else if (response.status === 500) {
+            setError('Server error. Please try again in a few moments.');
+          } else {
+            setError(`Failed to save preferences (${response.status}). Please try again.`);
+          }
         }
       }
     } catch (err) {
@@ -146,6 +163,7 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
 
   const handleRetry = () => {
     if (retryCount < 3) {
+      setRetryCount(prev => prev + 1);
       handleSave(true);
     } else {
       // After 3 retries, allow user to proceed with limited functionality
@@ -160,6 +178,7 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
   };
 
   const handleCompleteSetup = () => {
+    setRetryCount(0); // Reset retry count for new attempts
     handleSave(false);
   };
 
@@ -267,6 +286,11 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
           {error && (
             <div className="mt-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl">
               <p className="text-red-400 text-sm mb-3">{error}</p>
+              {retryCount > 0 && (
+                <p className="text-yellow-400 text-xs mb-3">
+                  Attempt {retryCount} of 3
+                </p>
+              )}
               <div className="flex flex-col sm:flex-row gap-2">
                 {retryCount < 3 && (
                   <Button

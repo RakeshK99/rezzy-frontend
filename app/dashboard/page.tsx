@@ -55,21 +55,32 @@ export default function Dashboard() {
       
       // Check if backend is available first
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://grateful-transformation-production.up.railway.app';
+      let backendAvailable = false;
+      
       try {
         const healthCheck = await fetch(`${apiUrl}/api/health`, {
           method: 'GET',
           signal: AbortSignal.timeout(5000) // 5 second timeout
         });
-        if (!healthCheck.ok) {
-          throw new Error('Backend health check failed');
+        if (healthCheck.ok) {
+          backendAvailable = true;
         }
       } catch (healthError) {
-        console.warn('Backend not available, will retry later:', healthError);
-        setError('Backend service is starting up. Please wait a moment and refresh the page.');
+        console.warn('Backend health check failed:', healthError);
+      }
+      
+      if (!backendAvailable) {
+        console.warn('Backend not available, proceeding with offline mode');
+        // Set default values and allow user to proceed
+        setPlan('free');
+        setUsage({ scans_used: 0, month: new Date().toISOString().slice(0, 7) });
+        setUserCreated(true);
+        setError('');
+        setShowOnboarding(true); // Show onboarding since we can't verify profile
         return;
       }
       
-      // Always try to create user first (the backend will handle duplicates)
+      // Backend is available, proceed with user creation
       console.log('Creating user...');
       const createResponse = await fetch(`${apiUrl}/api/create-user`, {
         method: 'POST',
@@ -91,62 +102,99 @@ export default function Dashboard() {
       if (createResponse.ok) {
         console.log('User created/updated successfully');
         
-        // Get the user plan first
-        const planResponse = await fetch(`${apiUrl}/api/get-plan?user_id=${user?.id}`, {
-          signal: AbortSignal.timeout(5000)
-        });
-        if (planResponse.ok) {
-          const planData = await planResponse.json();
-          console.log('User plan data:', planData);
-          setPlan(planData.plan);
-          setUsage(planData.usage);
-          setUserCreated(true);
-          setError(''); // Clear any previous errors
+        // Get the user plan
+        try {
+          const planResponse = await fetch(`${apiUrl}/api/get-plan?user_id=${user?.id}`, {
+            signal: AbortSignal.timeout(5000)
+          });
+          if (planResponse.ok) {
+            const planData = await planResponse.json();
+            console.log('User plan data:', planData);
+            setPlan(planData.plan);
+            setUsage(planData.usage);
+          } else {
+            // Fallback to default plan if plan fetch fails
+            console.warn('Plan fetch failed, using default values');
+            setPlan('free');
+            setUsage({ scans_used: 0, month: new Date().toISOString().slice(0, 7) });
+          }
+        } catch (planError) {
+          console.warn('Plan fetch error, using default values:', planError);
+          setPlan('free');
+          setUsage({ scans_used: 0, month: new Date().toISOString().slice(0, 7) });
+        }
+        
+        // Try to get user profile
+        try {
+          const profileResponse = await fetch(`${apiUrl}/api/user-profile/${user?.id}`, {
+            signal: AbortSignal.timeout(5000)
+          });
           
-          // Now try to get user profile to check if onboarding is needed
-          try {
-            const profileResponse = await fetch(`${apiUrl}/api/user-profile/${user?.id}`, {
-              signal: AbortSignal.timeout(5000)
-            });
+          if (profileResponse.ok) {
+            const profileData = await profileResponse.json();
+            setUserProfile(profileData);
             
-            if (profileResponse.ok) {
-              const profileData = await profileResponse.json();
-              setUserProfile(profileData);
-              
-              // Check if user needs onboarding (no position level or job category set)
-              if (!profileData.position_level || !profileData.job_category) {
-                setShowOnboarding(true);
-              }
-            } else {
-              // If profile not found, user needs onboarding
+            // Check if user needs onboarding
+            if (!profileData.position_level || !profileData.job_category) {
               setShowOnboarding(true);
             }
-          } catch (profileError) {
-            console.warn('Profile fetch failed, showing onboarding:', profileError);
+          } else {
+            // Profile not found, user needs onboarding
             setShowOnboarding(true);
           }
-        } else {
-          console.error('Failed to get plan data');
-          setError('Failed to load user plan data.');
+        } catch (profileError) {
+          console.warn('Profile fetch failed, showing onboarding:', profileError);
+          setShowOnboarding(true);
         }
+        
+        // Always set userCreated to true after attempting all operations
+        setUserCreated(true);
+        setError('');
+        
       } else {
-        const errorData = await createResponse.json();
-        console.error('Failed to create user:', errorData);
-        setError('Failed to create user account. Please try refreshing the page.');
+        // User creation failed, but we'll still allow access
+        console.error('Failed to create user, proceeding with limited functionality');
+        setPlan('free');
+        setUsage({ scans_used: 0, month: new Date().toISOString().slice(0, 7) });
+        setUserCreated(true);
+        setShowOnboarding(true);
+        setError('Some features may be limited due to connection issues.');
       }
-    } catch (_error) {
-      console.error('Error creating/getting user:', _error);
-      if (_error instanceof Error && _error.name === 'AbortError') {
-        setError('Request timed out. Please check your connection and try again.');
+      
+    } catch (error) {
+      console.error('Error in createUserIfNeeded:', error);
+      
+      // Always allow user to proceed, even with errors
+      setPlan('free');
+      setUsage({ scans_used: 0, month: new Date().toISOString().slice(0, 7) });
+      setUserCreated(true);
+      setShowOnboarding(true);
+      
+      if (error instanceof Error && error.name === 'AbortError') {
+        setError('Connection timed out. Some features may be limited.');
       } else {
-        setError('Failed to connect to backend service. Please ensure the backend is running.');
+        setError('Connection issue. Some features may be limited.');
       }
     }
   }, [user]);
 
   useEffect(() => {
     if (isLoaded && user?.id && !userCreated) {
+      // Add a timeout to prevent infinite loading
+      const timeoutId = setTimeout(() => {
+        if (!userCreated) {
+          console.warn('User creation timeout, proceeding with limited functionality');
+          setPlan('free');
+          setUsage({ scans_used: 0, month: new Date().toISOString().slice(0, 7) });
+          setUserCreated(true);
+          setShowOnboarding(true);
+          setError('Connection timeout. Some features may be limited.');
+        }
+      }, 15000); // 15 second timeout
+      
       createUserIfNeeded();
+      
+      return () => clearTimeout(timeoutId);
     }
   }, [isLoaded, user, userCreated, createUserIfNeeded]);
 
@@ -171,9 +219,20 @@ export default function Dashboard() {
   if (!userCreated) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-white text-lg mb-4">Setting up your account...</div>
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto"></div>
+        <div className="text-center max-w-md mx-auto px-6">
+          <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-6 animate-pulse">
+            <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
+          </div>
+          <h3 className="text-xl font-semibold text-white mb-2">Setting up your account...</h3>
+          <p className="text-gray-400 text-sm mb-6">This may take a few moments</p>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
+          {error && (
+            <div className="mt-4 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
+              <p className="text-yellow-400 text-sm">{error}</p>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -184,7 +243,7 @@ export default function Dashboard() {
     return <Onboarding onComplete={handleOnboardingComplete} />;
   }
 
-  if (error) {
+  if (error && !userCreated) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-center max-w-md mx-auto px-6">
@@ -208,6 +267,20 @@ export default function Dashboard() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
               </svg>
               Retry Connection
+            </Button>
+            <Button 
+              onClick={() => {
+                // Force proceed with limited functionality
+                setPlan('free');
+                setUsage({ scans_used: 0, month: new Date().toISOString().slice(0, 7) });
+                setUserCreated(true);
+                setShowOnboarding(true);
+                setError('');
+              }}
+              variant="outline"
+              className="w-full"
+            >
+              Continue with Limited Features
             </Button>
             <Button 
               onClick={() => window.location.reload()}

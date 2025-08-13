@@ -222,9 +222,25 @@ export default function Dashboard() {
   };
 
   const handleOnboardingComplete = () => {
+    console.log('Onboarding completed, hiding onboarding and showing dashboard');
     setShowOnboarding(false);
-    // Refresh user profile data
-    createUserIfNeeded();
+    
+    // Set default values if not already set
+    if (!plan) {
+      setPlan('free');
+    }
+    if (!usage) {
+      setUsage({ scans_used: 0, month: new Date().toISOString().slice(0, 7) });
+    }
+    
+    // Ensure user is marked as created
+    setUserCreated(true);
+    setError('');
+    
+    // Try to sync profile data in background without blocking
+    setTimeout(() => {
+      createUserIfNeeded();
+    }, 1000);
   };
 
   if (!isLoaded || !user) {

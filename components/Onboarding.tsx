@@ -131,154 +131,110 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
     });
 
     try {
-      // First, ensure the user exists in our database
-      const createUserFormData = new FormData();
-      createUserFormData.append('user_id', user.id);
-      createUserFormData.append('email', user.emailAddresses[0]?.emailAddress || '');
-      createUserFormData.append('first_name', user.firstName || '');
-      createUserFormData.append('middle_name', '');
-      createUserFormData.append('last_name', user.lastName || '');
-
-      console.log('📝 Creating user in database...');
-
-      // Try multiple API URLs for user creation
+      // Try to save to backend, but don't fail if it doesn't work
       const apiUrls = [
         process.env.NEXT_PUBLIC_API_URL || 'https://grateful-transformation-production.up.railway.app',
-        'https://grateful-transformation-production.up.railway.app',
-        'https://rezzy-backend-production.up.railway.app'
+        'https://grateful-transformation-production.up.railway.app'
       ];
 
-      let userCreated = false;
-      let lastError: Error | null = null;
+      let backendSuccess = false;
 
       for (const tryApiUrl of apiUrls) {
         try {
-          console.log(`🔄 Trying to create user with API URL: ${tryApiUrl}`);
+          console.log(`🔄 Trying to save profile with API URL: ${tryApiUrl}`);
           
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+          // First create user
+          const createUserFormData = new FormData();
+          createUserFormData.append('user_id', user.id);
+          createUserFormData.append('email', user.emailAddresses[0]?.emailAddress || '');
+          createUserFormData.append('first_name', user.firstName || '');
+          createUserFormData.append('middle_name', '');
+          createUserFormData.append('last_name', user.lastName || '');
 
-          const response = await fetch(`${tryApiUrl}/api/create-user`, {
+          const createResponse = await fetch(`${tryApiUrl}/api/create-user`, {
             method: 'POST',
             body: createUserFormData,
-            signal: controller.signal,
             mode: 'cors',
-            credentials: 'omit'
+            credentials: 'omit',
+            signal: AbortSignal.timeout(10000)
           });
 
-          clearTimeout(timeoutId);
+          if (createResponse.ok) {
+            console.log('✅ User created successfully');
+            
+            // Then update profile
+            const updateProfileFormData = new FormData();
+            updateProfileFormData.append('user_id', user.id);
+            updateProfileFormData.append('first_name', user.firstName || '');
+            updateProfileFormData.append('middle_name', '');
+            updateProfileFormData.append('last_name', user.lastName || '');
+            updateProfileFormData.append('position_level', positionLevel);
+            updateProfileFormData.append('job_category', jobCategory);
 
-          console.log('User creation response:', {
-            status: response.status,
-            statusText: response.statusText,
-            ok: response.ok
-          });
+            const updateResponse = await fetch(`${tryApiUrl}/api/update-profile`, {
+              method: 'POST',
+              body: updateProfileFormData,
+              mode: 'cors',
+              credentials: 'omit',
+              signal: AbortSignal.timeout(10000)
+            });
 
-          if (response.ok) {
-            console.log(`✅ User created successfully with API URL: ${tryApiUrl}`);
-            userCreated = true;
-            break;
+            if (updateResponse.ok) {
+              console.log('✅ Profile updated successfully');
+              backendSuccess = true;
+              break;
+            } else {
+              console.warn(`❌ Profile update failed: ${updateResponse.status}`);
+            }
           } else {
-            console.warn(`❌ Failed to create user with API URL ${tryApiUrl}: ${response.status} ${response.statusText}`);
-            lastError = new Error(`HTTP ${response.status}: ${response.statusText}`);
+            console.warn(`❌ User creation failed: ${createResponse.status}`);
           }
         } catch (err) {
-          console.warn(`❌ Error creating user with API URL ${tryApiUrl}:`, err);
-          lastError = err as Error;
+          console.warn(`❌ Error with API URL ${tryApiUrl}:`, err);
           continue;
         }
       }
 
-      if (!userCreated) {
-        throw lastError || new Error('Failed to create user in database');
-      }
-
-      // Now update the user's profile with position level and job category
-      console.log('📝 Updating user profile...');
-
-      const updateProfileFormData = new FormData();
-      updateProfileFormData.append('user_id', user.id);
-      updateProfileFormData.append('first_name', user.firstName || '');
-      updateProfileFormData.append('middle_name', '');
-      updateProfileFormData.append('last_name', user.lastName || '');
-      updateProfileFormData.append('position_level', positionLevel);
-      updateProfileFormData.append('job_category', jobCategory);
-
-      let profileUpdated = false;
-      lastError = null;
-
-      for (const tryApiUrl of apiUrls) {
-        try {
-          console.log(`🔄 Trying to update profile with API URL: ${tryApiUrl}`);
-          
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
-
-          const response = await fetch(`${tryApiUrl}/api/update-profile`, {
-            method: 'POST',
-            body: updateProfileFormData,
-            signal: controller.signal,
-            mode: 'cors',
-            credentials: 'omit'
-          });
-
-          clearTimeout(timeoutId);
-
-          console.log('Profile update response:', {
-            status: response.status,
-            statusText: response.statusText,
-            ok: response.ok
-          });
-
-          if (response.ok) {
-            console.log(`✅ Profile updated successfully with API URL: ${tryApiUrl}`);
-            profileUpdated = true;
-            break;
-          } else {
-            console.warn(`❌ Failed to update profile with API URL ${tryApiUrl}: ${response.status} ${response.statusText}`);
-            lastError = new Error(`HTTP ${response.status}: ${response.statusText}`);
-          }
-        } catch (err) {
-          console.warn(`❌ Error updating profile with API URL ${tryApiUrl}:`, err);
-          lastError = err as Error;
-          continue;
-        }
-      }
-
-      if (!profileUpdated) {
-        throw lastError || new Error('Failed to update profile');
-      }
-
-      console.log('🎉 Profile setup completed successfully!');
+      // Always complete onboarding, regardless of backend success
+      console.log('🎉 Completing onboarding...');
       
-      // Clear any stored onboarding data since we succeeded
+      // Store data locally
       if (typeof window !== 'undefined') {
-        localStorage.removeItem('rezzy_onboarding_data');
+        localStorage.setItem('rezzy_onboarding_data', JSON.stringify({
+          position_level: positionLevel,
+          job_category: jobCategory,
+          timestamp: Date.now(),
+          needs_sync: !backendSuccess
+        }));
+        
+        localStorage.setItem('rezzy_onboarding_completed', 'true');
+      }
+      
+      if (!backendSuccess) {
+        console.log('⚠️ Backend save failed, but continuing with local data');
       }
       
       onComplete();
       return;
 
     } catch (err) {
-      console.error('❌ Network error during profile setup:', err);
+      console.error('❌ Unexpected error during profile setup:', err);
       
-      let errorMessage = 'Network error. Please check your connection and try again.';
+      // Even if there's an error, complete onboarding with local data
+      console.log('🎉 Completing onboarding despite error...');
       
-      if (err instanceof Error) {
-        if (err.name === 'AbortError') {
-          errorMessage = 'Request timed out. Please check your connection and try again.';
-        } else if (err.message.includes('fetch')) {
-          errorMessage = 'Network error. Please check your connection and try again.';
-        } else if (err.message.includes('CORS')) {
-          errorMessage = 'Cross-origin request blocked. Please try again.';
-        } else if (err.message.includes('Failed to fetch')) {
-          errorMessage = 'Unable to reach the server. Please check your connection and try again.';
-        } else {
-          errorMessage = `Connection error: ${err.message}`;
-        }
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('rezzy_onboarding_data', JSON.stringify({
+          position_level: positionLevel,
+          job_category: jobCategory,
+          timestamp: Date.now(),
+          needs_sync: true
+        }));
+        
+        localStorage.setItem('rezzy_onboarding_completed', 'true');
       }
       
-      setError(errorMessage);
+      onComplete();
     } finally {
       setLoading(false);
     }
@@ -303,14 +259,14 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
       localStorage.setItem('rezzy_onboarding_data', JSON.stringify({
         position_level: positionLevel,
         job_category: jobCategory,
-        timestamp: Date.now(),
-        needs_sync: true
+        timestamp: Date.now()
       }));
+      
+      // Mark onboarding as completed locally
+      localStorage.setItem('rezzy_onboarding_completed', 'true');
     }
     
-    // Mark onboarding as completed locally so user can access dashboard
-    localStorage.setItem('rezzy_onboarding_completed', 'true');
-    
+    console.log('Calling onComplete to proceed to dashboard');
     onComplete();
   };
 
@@ -325,11 +281,12 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
         job_category: jobCategory,
         timestamp: Date.now()
       }));
+      
+      // Mark onboarding as completed locally
+      localStorage.setItem('rezzy_onboarding_completed', 'true');
     }
     
-    // Mark onboarding as completed locally
-    localStorage.setItem('rezzy_onboarding_completed', 'true');
-    
+    console.log('Calling onComplete to proceed to dashboard');
     onComplete();
   };
 

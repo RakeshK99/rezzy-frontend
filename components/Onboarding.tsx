@@ -294,22 +294,6 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
     }
   };
 
-  const handleSkip = () => {
-    // Allow user to skip onboarding and proceed to dashboard
-    console.log('User skipped onboarding, proceeding with default values');
-    
-    // Store the selections locally for potential later sync
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('rezzy_onboarding_data', JSON.stringify({
-        position_level: positionLevel,
-        job_category: jobCategory,
-        timestamp: Date.now()
-      }));
-    }
-    
-    onComplete();
-  };
-
   const handleContinueAnyway = () => {
     // User wants to continue despite the error
     console.log('User chose to continue despite network error');
@@ -323,6 +307,28 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
         needs_sync: true
       }));
     }
+    
+    // Mark onboarding as completed locally so user can access dashboard
+    localStorage.setItem('rezzy_onboarding_completed', 'true');
+    
+    onComplete();
+  };
+
+  const handleSkip = () => {
+    // Allow user to skip onboarding and proceed to dashboard
+    console.log('User skipped onboarding, proceeding with default values');
+    
+    // Store the selections locally for potential later sync
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('rezzy_onboarding_data', JSON.stringify({
+        position_level: positionLevel,
+        job_category: jobCategory,
+        timestamp: Date.now()
+      }));
+    }
+    
+    // Mark onboarding as completed locally
+    localStorage.setItem('rezzy_onboarding_completed', 'true');
     
     onComplete();
   };

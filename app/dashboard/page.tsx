@@ -136,15 +136,25 @@ export default function Dashboard() {
             
             // Check if user needs onboarding
             if (!profileData.position_level || !profileData.job_category) {
-              setShowOnboarding(true);
+              // Check if user has completed onboarding locally
+              const onboardingCompleted = typeof window !== 'undefined' && localStorage.getItem('rezzy_onboarding_completed') === 'true';
+              if (!onboardingCompleted) {
+                setShowOnboarding(true);
+              }
             }
           } else {
-            // Profile not found, user needs onboarding
-            setShowOnboarding(true);
+            // Profile not found, check if user has completed onboarding locally
+            const onboardingCompleted = typeof window !== 'undefined' && localStorage.getItem('rezzy_onboarding_completed') === 'true';
+            if (!onboardingCompleted) {
+              setShowOnboarding(true);
+            }
           }
         } catch (profileError) {
-          console.warn('Profile fetch failed, showing onboarding:', profileError);
-          setShowOnboarding(true);
+          console.warn('Profile fetch failed, checking local onboarding status:', profileError);
+          const onboardingCompleted = typeof window !== 'undefined' && localStorage.getItem('rezzy_onboarding_completed') === 'true';
+          if (!onboardingCompleted) {
+            setShowOnboarding(true);
+          }
         }
         
         // Always set userCreated to true after attempting all operations
@@ -157,7 +167,10 @@ export default function Dashboard() {
         setPlan('free');
         setUsage({ scans_used: 0, month: new Date().toISOString().slice(0, 7) });
         setUserCreated(true);
-        setShowOnboarding(true);
+        const onboardingCompleted = typeof window !== 'undefined' && localStorage.getItem('rezzy_onboarding_completed') === 'true';
+        if (!onboardingCompleted) {
+          setShowOnboarding(true);
+        }
         setError('Some features may be limited due to connection issues.');
       }
       
@@ -168,7 +181,10 @@ export default function Dashboard() {
       setPlan('free');
       setUsage({ scans_used: 0, month: new Date().toISOString().slice(0, 7) });
       setUserCreated(true);
-      setShowOnboarding(true);
+      const onboardingCompleted = typeof window !== 'undefined' && localStorage.getItem('rezzy_onboarding_completed') === 'true';
+      if (!onboardingCompleted) {
+        setShowOnboarding(true);
+      }
       
       if (error instanceof Error && error.name === 'AbortError') {
         setError('Connection timed out. Some features may be limited.');
@@ -187,7 +203,10 @@ export default function Dashboard() {
           setPlan('free');
           setUsage({ scans_used: 0, month: new Date().toISOString().slice(0, 7) });
           setUserCreated(true);
-          setShowOnboarding(true);
+          const onboardingCompleted = typeof window !== 'undefined' && localStorage.getItem('rezzy_onboarding_completed') === 'true';
+          if (!onboardingCompleted) {
+            setShowOnboarding(true);
+          }
           setError('Connection timeout. Some features may be limited.');
         }
       }, 15000); // 15 second timeout

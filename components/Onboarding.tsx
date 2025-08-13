@@ -112,142 +112,155 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
     return () => clearTimeout(timeoutId);
   }, [user]);
 
-  const handleSave = async (isRetry = false) => {
-    if (!positionLevel || !jobCategory) {
-      setError('Please select both position level and job category');
+  const handleSave = async (isRetry: boolean = false) => {
+    if (!user?.id) {
+      setError('User information not available. Please try signing in again.');
       return;
-    }
-
-    if (isRetry) {
-      setRetryCount(prev => prev + 1);
     }
 
     setLoading(true);
     setError('');
 
+    console.log('🚀 Starting profile update process...', {
+      userId: user.id,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      positionLevel,
+      jobCategory,
+      isRetry
+    });
+
     try {
-      // Try multiple API URLs to ensure connectivity
+      // First, ensure the user exists in our database
+      const createUserFormData = new FormData();
+      createUserFormData.append('user_id', user.id);
+      createUserFormData.append('email', user.emailAddresses[0]?.emailAddress || '');
+      createUserFormData.append('first_name', user.firstName || '');
+      createUserFormData.append('middle_name', '');
+      createUserFormData.append('last_name', user.lastName || '');
+
+      console.log('📝 Creating user in database...');
+
+      // Try multiple API URLs for user creation
       const apiUrls = [
-        process.env.NEXT_PUBLIC_API_URL,
+        process.env.NEXT_PUBLIC_API_URL || 'https://grateful-transformation-production.up.railway.app',
         'https://grateful-transformation-production.up.railway.app',
         'https://rezzy-backend-production.up.railway.app'
-      ].filter(Boolean);
-      
-      const apiUrl = apiUrls[0] || 'https://grateful-transformation-production.up.railway.app';
-      
-      console.log('Environment check:', {
-        NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
-        apiUrl: apiUrl,
-        allApiUrls: apiUrls,
-        user_id: user?.id,
-        position_level: positionLevel,
-        job_category: jobCategory
-      });
-      
-      // Test connectivity first
-      try {
-        const testResponse = await fetch(`${apiUrl}/api/health`, {
-          method: 'GET',
-          mode: 'cors',
-          credentials: 'omit',
-          signal: AbortSignal.timeout(5000)
-        });
-        
-        if (!testResponse.ok) {
-          console.warn('Health check failed, but continuing with request');
-        } else {
-          console.log('Health check successful');
-        }
-      } catch (healthError) {
-        console.warn('Health check failed:', healthError);
-        // Continue anyway
-      }
-      
-      // Create FormData with all required fields
-      const formData = new FormData();
-      formData.append('user_id', user?.id || '');
-      formData.append('first_name', user?.firstName || '');
-      formData.append('middle_name', '');
-      formData.append('last_name', user?.lastName || '');
-      formData.append('position_level', positionLevel);
-      formData.append('job_category', jobCategory);
+      ];
 
-      console.log('Sending profile update request:', {
-        user_id: user?.id,
-        first_name: user?.firstName,
-        last_name: user?.lastName,
-        position_level: positionLevel,
-        job_category: jobCategory,
-        apiUrl: apiUrl
-      });
+      let userCreated = false;
+      let lastError: Error | null = null;
 
-      // Add timeout to prevent hanging requests
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => {
-        controller.abort();
-        console.log('Request timed out after 15 seconds');
-      }, 15000); // 15 second timeout
-
-      // Try multiple API URLs if needed
-      let response = null;
-      let lastError = null;
-      
       for (const tryApiUrl of apiUrls) {
         try {
-          console.log(`Trying API URL: ${tryApiUrl}`);
+          console.log(`🔄 Trying to create user with API URL: ${tryApiUrl}`);
           
-          // Make the request with proper headers and error handling
-          response = await fetch(`${tryApiUrl}/api/update-profile`, {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+
+          const response = await fetch(`${tryApiUrl}/api/create-user`, {
             method: 'POST',
-            body: formData,
+            body: createUserFormData,
             signal: controller.signal,
-            headers: {
-              // Don't set Content-Type for FormData - browser will set it automatically with boundary
-            },
-            mode: 'cors', // Explicitly enable CORS
-            credentials: 'omit' // Don't send cookies for this request
+            mode: 'cors',
+            credentials: 'omit'
           });
 
-          console.log('Response received:', {
+          clearTimeout(timeoutId);
+
+          console.log('User creation response:', {
             status: response.status,
             statusText: response.statusText,
-            ok: response.ok,
-            headers: Object.fromEntries(response.headers.entries())
+            ok: response.ok
           });
 
           if (response.ok) {
-            console.log(`Success with API URL: ${tryApiUrl}`);
-            break; // Success, exit the loop
+            console.log(`✅ User created successfully with API URL: ${tryApiUrl}`);
+            userCreated = true;
+            break;
           } else {
-            console.warn(`Failed with API URL ${tryApiUrl}: ${response.status} ${response.statusText}`);
+            console.warn(`❌ Failed to create user with API URL ${tryApiUrl}: ${response.status} ${response.statusText}`);
             lastError = new Error(`HTTP ${response.status}: ${response.statusText}`);
           }
         } catch (err) {
-          console.warn(`Error with API URL ${tryApiUrl}:`, err);
-          lastError = err;
-          continue; // Try next URL
+          console.warn(`❌ Error creating user with API URL ${tryApiUrl}:`, err);
+          lastError = err as Error;
+          continue;
         }
       }
 
-      clearTimeout(timeoutId);
-
-      if (!response || !response.ok) {
-        throw lastError || new Error('All API URLs failed');
+      if (!userCreated) {
+        throw lastError || new Error('Failed to create user in database');
       }
 
-      try {
-          const data = await response.json();
-          console.log('Profile updated successfully:', data);
-          onComplete();
-          return;
-        } catch (parseError) {
-          console.warn('Response was ok but couldn\'t parse JSON:', parseError);
-          // Even if we can't parse the response, if status is ok, consider it successful
-          onComplete();
-          return;
+      // Now update the user's profile with position level and job category
+      console.log('📝 Updating user profile...');
+
+      const updateProfileFormData = new FormData();
+      updateProfileFormData.append('user_id', user.id);
+      updateProfileFormData.append('first_name', user.firstName || '');
+      updateProfileFormData.append('middle_name', '');
+      updateProfileFormData.append('last_name', user.lastName || '');
+      updateProfileFormData.append('position_level', positionLevel);
+      updateProfileFormData.append('job_category', jobCategory);
+
+      let profileUpdated = false;
+      lastError = null;
+
+      for (const tryApiUrl of apiUrls) {
+        try {
+          console.log(`🔄 Trying to update profile with API URL: ${tryApiUrl}`);
+          
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+
+          const response = await fetch(`${tryApiUrl}/api/update-profile`, {
+            method: 'POST',
+            body: updateProfileFormData,
+            signal: controller.signal,
+            mode: 'cors',
+            credentials: 'omit'
+          });
+
+          clearTimeout(timeoutId);
+
+          console.log('Profile update response:', {
+            status: response.status,
+            statusText: response.statusText,
+            ok: response.ok
+          });
+
+          if (response.ok) {
+            console.log(`✅ Profile updated successfully with API URL: ${tryApiUrl}`);
+            profileUpdated = true;
+            break;
+          } else {
+            console.warn(`❌ Failed to update profile with API URL ${tryApiUrl}: ${response.status} ${response.statusText}`);
+            lastError = new Error(`HTTP ${response.status}: ${response.statusText}`);
+          }
+        } catch (err) {
+          console.warn(`❌ Error updating profile with API URL ${tryApiUrl}:`, err);
+          lastError = err as Error;
+          continue;
         }
+      }
+
+      if (!profileUpdated) {
+        throw lastError || new Error('Failed to update profile');
+      }
+
+      console.log('🎉 Profile setup completed successfully!');
+      
+      // Clear any stored onboarding data since we succeeded
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('rezzy_onboarding_data');
+      }
+      
+      onComplete();
+      return;
+
     } catch (err) {
-      console.error('Network error during profile update:', err);
+      console.error('❌ Network error during profile setup:', err);
       
       let errorMessage = 'Network error. Please check your connection and try again.';
       
@@ -493,4 +506,4 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
       </div>
     </div>
   );
-} 
+}

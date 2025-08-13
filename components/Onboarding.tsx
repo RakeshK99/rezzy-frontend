@@ -465,6 +465,17 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
                 >
                   Continue Anyway
                 </Button>
+                <Button
+                  onClick={() => {
+                    localStorage.clear();
+                    window.location.reload();
+                  }}
+                  size="sm"
+                  variant="outline"
+                  className="px-4 py-2 rounded-lg text-sm text-yellow-400"
+                >
+                  Reset & Reload
+                </Button>
               </div>
             </div>
           )}
